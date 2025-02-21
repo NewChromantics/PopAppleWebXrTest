@@ -19,7 +19,6 @@ public typealias UIViewRepresentable = NSViewRepresentable
 #endif
 
 
-
 let RequestAnimationFramePolyfill = """
 var lastTime = 0;
 window.requestAnimationFrame = function(callback, element) {
@@ -33,10 +32,10 @@ window.cancelAnimationFrame = clearTimeout;
 let CustomHandlerApiSource = """
 async function CallCustomHandler()
 {
-	const Result = await window.webkit.messageHandlers.AppleXr.postMessage("GetFrame");
+	const Result = await window.webkit.messageHandlers.AppleXr.postMessage("WaitForNextFrame");
 	console.log(Result);
 }
-CallCustomHandler()
+//CallCustomHandler()
 """
 
 
@@ -57,52 +56,6 @@ struct RuntimeError: LocalizedError
 //	load custom script
 //	https://stackoverflow.com/a/58615934/355753
 
-
-class WebxrController : NSObject, WKScriptMessageHandlerWithReply
-{
-	static let messageName : String = "AppleXr"
-	
-	func HandleMessage(_ message:WKScriptMessage) throws -> Any
-	{
-		guard let messageBody = message.body as? String else
-		{
-			throw RuntimeError("Message body of \(message.name) expected to be string")
-		}
-
-		//if message.name == WebxrController.messageName
-		if messageBody == "WaitForNextFrame"
-		{
-			let result : [String:Any] = ["Hello":123]
-			return result
-		}
-		
-		print(message.name)
-		throw RuntimeError("Unhandled \(message.name)")
-	}
-	
-	//	async
-	func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage, replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void) 
-	{
-		do
-		{
-			let result = try HandleMessage(message)
-			replyHandler( result, nil )
-		}
-		catch 
-		{
-			replyHandler( nil, error.localizedDescription )
-		}
-	}
-	/*
-	func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) async -> (Any?, String?) 
-	{
-		if message.name == JavaScriptAPIObjectName, let messageBody = message.body as? String {
-			print(messageBody)
-			replyHandler( 2.2, nil ) // first var is success return val, second is err string if error
-		}
-	}
-	 */
-}
 
 
 class WebViewController

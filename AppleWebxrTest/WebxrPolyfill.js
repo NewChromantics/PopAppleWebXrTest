@@ -19,6 +19,40 @@ function Yield(Milliseconds)
 	return Promise;
 }
 
+//	popengine/math
+function MatrixInverse4x4(Matrix)
+{
+	let m = Matrix;
+	let r = [];
+	
+	r[0] = m[5]*m[10]*m[15] - m[5]*m[14]*m[11] - m[6]*m[9]*m[15] + m[6]*m[13]*m[11] + m[7]*m[9]*m[14] - m[7]*m[13]*m[10];
+	r[1] = -m[1]*m[10]*m[15] + m[1]*m[14]*m[11] + m[2]*m[9]*m[15] - m[2]*m[13]*m[11] - m[3]*m[9]*m[14] + m[3]*m[13]*m[10];
+	r[2] = m[1]*m[6]*m[15] - m[1]*m[14]*m[7] - m[2]*m[5]*m[15] + m[2]*m[13]*m[7] + m[3]*m[5]*m[14] - m[3]*m[13]*m[6];
+	r[3] = -m[1]*m[6]*m[11] + m[1]*m[10]*m[7] + m[2]*m[5]*m[11] - m[2]*m[9]*m[7] - m[3]*m[5]*m[10] + m[3]*m[9]*m[6];
+	
+	r[4] = -m[4]*m[10]*m[15] + m[4]*m[14]*m[11] + m[6]*m[8]*m[15] - m[6]*m[12]*m[11] - m[7]*m[8]*m[14] + m[7]*m[12]*m[10];
+	r[5] = m[0]*m[10]*m[15] - m[0]*m[14]*m[11] - m[2]*m[8]*m[15] + m[2]*m[12]*m[11] + m[3]*m[8]*m[14] - m[3]*m[12]*m[10];
+	r[6] = -m[0]*m[6]*m[15] + m[0]*m[14]*m[7] + m[2]*m[4]*m[15] - m[2]*m[12]*m[7] - m[3]*m[4]*m[14] + m[3]*m[12]*m[6];
+	r[7] = m[0]*m[6]*m[11] - m[0]*m[10]*m[7] - m[2]*m[4]*m[11] + m[2]*m[8]*m[7] + m[3]*m[4]*m[10] - m[3]*m[8]*m[6];
+	
+	r[8] = m[4]*m[9]*m[15] - m[4]*m[13]*m[11] - m[5]*m[8]*m[15] + m[5]*m[12]*m[11] + m[7]*m[8]*m[13] - m[7]*m[12]*m[9];
+	r[9] = -m[0]*m[9]*m[15] + m[0]*m[13]*m[11] + m[1]*m[8]*m[15] - m[1]*m[12]*m[11] - m[3]*m[8]*m[13] + m[3]*m[12]*m[9];
+	r[10] = m[0]*m[5]*m[15] - m[0]*m[13]*m[7] - m[1]*m[4]*m[15] + m[1]*m[12]*m[7] + m[3]*m[4]*m[13] - m[3]*m[12]*m[5];
+	r[11] = -m[0]*m[5]*m[11] + m[0]*m[9]*m[7] + m[1]*m[4]*m[11] - m[1]*m[8]*m[7] - m[3]*m[4]*m[9] + m[3]*m[8]*m[5];
+	
+	r[12] = -m[4]*m[9]*m[14] + m[4]*m[13]*m[10] + m[5]*m[8]*m[14] - m[5]*m[12]*m[10] - m[6]*m[8]*m[13] + m[6]*m[12]*m[9];
+	r[13] = m[0]*m[9]*m[14] - m[0]*m[13]*m[10] - m[1]*m[8]*m[14] + m[1]*m[12]*m[10] + m[2]*m[8]*m[13] - m[2]*m[12]*m[9];
+	r[14] = -m[0]*m[5]*m[14] + m[0]*m[13]*m[6] + m[1]*m[4]*m[14] - m[1]*m[12]*m[6] - m[2]*m[4]*m[13] + m[2]*m[12]*m[5];
+	r[15] = m[0]*m[5]*m[10] - m[0]*m[9]*m[6] - m[1]*m[4]*m[10] + m[1]*m[8]*m[6] + m[2]*m[4]*m[9] - m[2]*m[8]*m[5];
+	
+	let det = m[0]*r[0] + m[1]*r[4] + m[2]*r[8] + m[3]*r[12];
+	for ( let i=0;	i<16;	i++ )
+		r[i] /= det;
+	
+	return r;
+	
+}
+
 //	todo: use https://github.com/immersive-web/webxr-polyfill/tree/ polyfill
 //const polyfill = import('https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js')
 
@@ -27,8 +61,8 @@ class XRViewport
 {
 	get x()	{	return 0;	}
 	get y()	{	return 0;	}
-	get width()	{	return 400;	}
-	get height()	{	return 400;	}
+	get width()	{	return 1400;	}
+	get height()	{	return 1400;	}
 }
 
 class XRWebGLLayer
@@ -49,8 +83,12 @@ class XRWebGLLayer
 
 class XRRigidTransform
 {
-	constructor()
+	constructor(Float16=null)
 	{
+		if ( !Float16 )
+			Float16 = this.identity4x4;
+		
+		this.values = Float16.slice();
 		/*
 		 let xform = new XRRigidTransform(
 		 {},
@@ -60,16 +98,24 @@ class XRRigidTransform
 */
 	}
 	
+	get identity4x4()	{	return [1,0,0,0,	0,1,0,0,	0,0,1,0,	0,0,0,1];	}
+	
 	static CreateIdentity()	{	return new XRRigidTransform();	}
-	get matrix()	{	return [1,0,0,0,	0,1,0,0,	0,0,1,0,	0,0,0,1];	}
+	get matrix()	{	return this.values;	}
 	get position()	{	return {x:0,y:0,z:0};	}
-	get inverse()	{	return new XRRigidTransform();	}
+	get inverse()	{	return new XRRigidTransform( MatrixInverse4x4(this.matrix) );	}
 }
 
 
 //	https://developer.mozilla.org/en-US/docs/Web/API/XRView
 class XRView
 {
+	constructor(WorldTransform,ProjectionMatrix)
+	{
+		this.ProjectionMatrix = ProjectionMatrix;
+		this.WorldTransform = WorldTransform;
+	}
+	
 	get eye()	{	return 'left';	}
 	/*
 	view ? view.projectionMatrix : null,
@@ -77,25 +123,44 @@ class XRView
 	viewport ? viewport : ((layer && view) ? layer.getViewport(view) : null),
 	view ? view.eye : 'left'
 	 */
-	get projectionMatrix()	{	return [1,0,0,0,	0,1,0,0,	0,0,1,0,	0,0,0,1];	}
-	get transform()	{	return XRRigidTransform.CreateIdentity();	}
+	get projectionMatrix()	{	return this.ProjectionMatrix.matrix;	}
+	get transform()	{	return this.WorldTransform;	}
 }
 
 class XRPose
 {
-	get views()	{	return [new XRView()];	}
+	constructor(WorldTransform,ProjectionMatrix)
+	{
+		this.ProjectionMatrix = ProjectionMatrix;
+		this.WorldTransform = WorldTransform;
+	}
+	
+	get views()	{	return [new XRView(this.WorldTransform,this.ProjectionMatrix)];	}
 }
 
 class XRFrame
 {
-	constructor(session)
+	constructor(session,FrameMeta)
 	{
 		this.session = session;
+		this.FrameMeta = FrameMeta;
+	}
+	
+	GetWorldTransform()
+	{
+		let Matrix = this.FrameMeta.WorldTransform;
+		return new XRRigidTransform(Matrix);
+	}
+	
+	GetProjectionMatrix()
+	{
+		let Matrix = this.FrameMeta.ProjectionMatrix;
+		return new XRRigidTransform(Matrix);
 	}
 	
 	getViewerPose(referenceSpace)
 	{
-		return new XRPose();
+		return new XRPose( this.GetWorldTransform(), this.GetProjectionMatrix() );
 	}
 }
 
@@ -142,11 +207,15 @@ class ArSession
 	{
 		while ( this.#IsRunning )
 		{
-			const Result = await window.webkit.messageHandlers.AppleXr.postMessage("WaitForNextFrame");
-			console.log(Result);
-			this.#PendingFrame = new XRFrame(this);
-			//	throttle
 			await Yield(30);
+			const FrameMeta = await window.webkit.messageHandlers.AppleXr.postMessage("WaitForNextFrame");
+			if ( typeof FrameMeta != typeof {} )
+			{
+				console.log(`WaitForNextFrame -> ${FrameMeta}`);
+				continue;
+			}
+			
+			this.#PendingFrame = new XRFrame(this,FrameMeta);
 		}
 	}
 	
