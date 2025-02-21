@@ -31,25 +31,77 @@ window.cancelAnimationFrame = clearTimeout;
 """
 
 let CustomHandlerApiSource = """
-function CallCustomHandler()
+async function CallCustomHandler()
 {
-	window.webkit.messageHandlers.CustomContent.postMessage("Hello");
+	const Result = await window.webkit.messageHandlers.AppleXr.postMessage("GetFrame");
+	console.log(Result);
 }
 CallCustomHandler()
 """
 
+
+struct RuntimeError: LocalizedError
+{
+	let description: String
+	
+	init(_ description: String) {
+		self.description = description
+	}
+	
+	var errorDescription: String? {
+		description
+	}
+}
 
 
 //	load custom script
 //	https://stackoverflow.com/a/58615934/355753
 
 
-class WebxrController : NSObject, WKScriptMessageHandler
+class WebxrController : NSObject, WKScriptMessageHandlerWithReply
 {
-	func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) 
+	static let messageName : String = "AppleXr"
+	
+	func HandleMessage(_ message:WKScriptMessage) throws -> Any
 	{
-		print("CustomHandlerApi callback")
+		guard let messageBody = message.body as? String else
+		{
+			throw RuntimeError("Message body of \(message.name) expected to be string")
+		}
+
+		//if message.name == WebxrController.messageName
+		if messageBody == "WaitForNextFrame"
+		{
+			let result : [String:Any] = ["Hello":123]
+			return result
+		}
+		
+		print(message.name)
+		throw RuntimeError("Unhandled \(message.name)")
 	}
+	
+	//	async
+	func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage, replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void) 
+	{
+		do
+		{
+			let result = try HandleMessage(message)
+			replyHandler( result, nil )
+		}
+		catch 
+		{
+			replyHandler( nil, error.localizedDescription )
+		}
+	}
+	/*
+	func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) async -> (Any?, String?) 
+	{
+		if message.name == JavaScriptAPIObjectName, let messageBody = message.body as? String {
+			print(messageBody)
+			replyHandler( 2.2, nil ) // first var is success return val, second is err string if error
+		}
+	}
+	 */
 }
 
 
@@ -104,9 +156,9 @@ class WebViewController
 		//let RequestAnimationFramePolyfill = WKUserScript(source: RequestAnimationFramePolyfill, injectionTime: .atDocumentStart, forMainFrameOnly: false)
 		//configuration.userContentController.addUserScript(RequestAnimationFramePolyfill)
 		
-		//	js: window.webkit.messageHandlers.CustomContent.postMessage(messageText);
-		configuration.userContentController.add(webXr, name: "CustomContent")
-		
+		//	js: window.webkit.messageHandlers.AppleXr.postMessage(messageText);
+		configuration.userContentController.addScriptMessageHandler(webXr, contentWorld:.page, name: WebxrController.messageName)
+
 		return configuration
 	}
 }

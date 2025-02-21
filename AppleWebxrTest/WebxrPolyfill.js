@@ -1,3 +1,24 @@
+function CreatePromise()
+{
+	let Callbacks = {};
+	let PromiseHandler = function(Resolve,Reject)
+	{
+		Callbacks.Resolve = Resolve;
+		Callbacks.Reject = Reject;
+	}
+	let Prom = new Promise(PromiseHandler);
+	Prom.Resolve = Callbacks.Resolve;
+	Prom.Reject = Callbacks.Reject;
+	return Prom;
+}
+
+function Yield(Milliseconds)
+{
+	const Promise = CreatePromise();
+	setTimeout( Promise.Resolve, Milliseconds );
+	return Promise;
+}
+
 //	todo: use https://github.com/immersive-web/webxr-polyfill/tree/ polyfill
 //const polyfill = import('https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js')
 
@@ -104,6 +125,38 @@ class ArSession
 	#IsImmersive = false;
 	
 	#RenderState = null;
+	#IsRunning = true;
+	#PendingFrame = null;	//	XRFrame
+	
+	constructor()
+	{
+		this.#Thread().catch( this.#OnError.bind(this) );
+	}
+	
+	#OnError(Error)
+	{
+		console.error(Error);
+	}
+	
+	async #Thread()
+	{
+		while ( this.#IsRunning )
+		{
+			const Result = await window.webkit.messageHandlers.AppleXr.postMessage("WaitForNextFrame");
+			console.log(Result);
+			this.#PendingFrame = new XRFrame(this);
+			//	throttle
+			await Yield(30);
+		}
+	}
+	
+	#PopFrame()
+	{
+		const Frame = this.#PendingFrame;
+		this.#PendingFrame = null;
+		return Frame;
+	}
+	
 	
 	get isImmersive()		{	return this.#IsImmersive == true;	}
 	set isImmersive(value)	{	}//this.#IsImmersive = value;	}
@@ -135,14 +188,31 @@ class ArSession
 	
 	requestAnimationFrame(onXRFrame)
 	{
+		async function SendNextFrame()
+		{
+			for ( let i=0;	i<1000;	i++ )
+			{
+				const Time = 1000;
+				const NextFrame = this.#PopFrame();
+				if ( NextFrame )
+				{
+					onXRFrame( Time, NextFrame );
+					return;
+				}
+				await Yield(10);
+			}
+		}
+		
+		SendNextFrame.call(this);
+		/*
 		function Tick()
 		{
-			const Time = 1000;
 			const Frame = new XRFrame(this);
 			onXRFrame( Time, Frame );
 		}
 		
 		setTimeout( Tick.bind(this), 100 );
+		 */
 	}
 	/*
 	OnReset()
