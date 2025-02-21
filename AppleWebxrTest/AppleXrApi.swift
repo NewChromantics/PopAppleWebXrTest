@@ -40,7 +40,11 @@ class WebxrController : NSObject, WKScriptMessageHandlerWithReply
 	
 	static func WriteCameraMeta(camera:ARCamera,meta:inout [String:Any])
 	{
-		let WorldTransform = camera.transform.transpose
+		//	gr: these matricies are correct when phone in landscape. need to correct the projection matrix (i believe)
+		//		based on orientation
+		//		I'm sure i did this in PopCameraDevice!
+
+		let WorldTransform = camera.transform.transpose.inverse
 		meta["WorldTransform"] = MatrixToFloatArray(WorldTransform)
 
 		let ProjectionMatrix = camera.projectionMatrix

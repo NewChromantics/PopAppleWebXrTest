@@ -61,8 +61,8 @@ class XRViewport
 {
 	get x()	{	return 0;	}
 	get y()	{	return 0;	}
-	get width()	{	return 1400;	}
-	get height()	{	return 1400;	}
+	get width()	{	return 2000;	}
+	get height()	{	return 1200;	}
 }
 
 class XRWebGLLayer
