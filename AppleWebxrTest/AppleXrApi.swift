@@ -35,16 +35,27 @@ func MatrixToFloatArray(_ float4x4:simd_float4x4) -> [Float]
 	return array
 }
 
-class WebxrController : NSObject, WKScriptMessageHandlerWithReply
+class WebxrController : NSObject, WKScriptMessageHandlerWithReply, ARSessionDelegate
 {
 	static let messageName : String = "AppleXr"
-	let session = ARSession()
+	var session = ARSession()
+	var frameQueue = [ARFrame]()
+	var dropFrames = true
 	
 	override init()
 	{
+		super.init()
+		session.delegate = self
 		session.run( ARWorldTrackingConfiguration()/*, options:ARSession.RunOptions */)
 		
 	}
+	
+	func session(_ session: ARSession, didUpdate frame: ARFrame)
+	{
+		frameQueue.append(frame)
+		print("New frame (now \(frameQueue.count)")
+	}
+
 	
 	static func WriteCameraMeta(camera:ARCamera,meta:inout [String:Any])
 	{
@@ -61,6 +72,26 @@ class WebxrController : NSObject, WKScriptMessageHandlerWithReply
 	
 	let bigData = Array(repeating: 0xffffffff, count: 2024*2024 )
 	
+	
+	func popNextFrame() -> ARFrame?
+	{
+		//	not using buffering
+		if session.delegate == nil
+		{
+			return session.currentFrame
+		}
+		
+		if dropFrames
+		{
+			let last = frameQueue.last
+			frameQueue = []
+			return last
+		}
+		
+		return frameQueue.popFirst()
+	}
+	
+	
 	func HandleMessage(_ message:WKScriptMessage) throws -> Any
 	{
 		guard let messageBody = message.body as? String else
@@ -71,7 +102,7 @@ class WebxrController : NSObject, WKScriptMessageHandlerWithReply
 		//if message.name == WebxrController.messageName
 		if messageBody == "WaitForNextFrame"
 		{
-			guard let frame = session.currentFrame else
+			guard let frame = popNextFrame() else
 			{
 				return "Null frame"
 			}
@@ -83,7 +114,7 @@ class WebxrController : NSObject, WKScriptMessageHandlerWithReply
 			
 			//	way too slow
 			//frameMeta["BigData"] = Array(repeating: 0xffffffff, count: 2024*2024 )
-			frameMeta["BigData"] = bigData
+			//frameMeta["BigData"] = bigData
 			
 			WebxrController.WriteCameraMeta( camera: frame.camera, meta: &frameMeta )
 			
@@ -117,24 +148,7 @@ class WebxrController : NSObject, WKScriptMessageHandlerWithReply
 		}
 	}
 	 */
-	/*
-	func webView(_ webView: WKWebView, start urlSchemeTask: any WKURLSchemeTask) 
-	{
-		let blue = Data([0,0,255,255])
-		let bytesPerRow = 4
-		let x = 0
-		let y = 0
-		let width = 1
-		let height = 1
-		let userInfo : Any? = nil
-
-		urlSchemeTask.request.provideImageData(blue, bytesPerRow: bytesPerRow, origin: x, size: y, userInfo: userInfo )
-	}
 	
-	func webView(_ webView: WKWebView, stop urlSchemeTask: any WKURLSchemeTask) 
-	{
-	}
-	*/
 }
 
 
@@ -233,7 +247,7 @@ public class MyURLSchemeHandler: NSObject, WKURLSchemeHandler
 			return
 		}
 
-		let responseTask = Task(priority: .background)
+		let responseTask = Task.detached(priority: .background)
 		{
 			//let filePath = requestUrl.absoluteString	// absolute includes scheme
 			var filePath = requestUrl.path().suffix(after:"/") ?? requestUrl.path()
