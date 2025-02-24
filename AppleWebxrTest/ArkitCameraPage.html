@@ -1,7 +1,16 @@
 <html>
 <head>
-	<meta name="viewport" content="width=device-width, initial-scale=2" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
 
+	<style>
+		canvas
+		{
+			background: #33c;
+			width:	80vw;
+			height:	70vh;
+		}
+	</style>
+	
 </head>
 
 <body>
@@ -10,6 +19,7 @@
 
 <div id=Status></div>
 <div id=Log></div>
+<canvas width=2000 height=2000></canvas>
 
 <script type=module>
 
@@ -38,6 +48,8 @@
 let Logs = [];
 function Log(Status)
 {
+	if ( Logs[Logs.length-1] == Status )
+		return;
 	Logs.push(Status);
 	const Div = document.querySelector(`#Log`);
 	
@@ -55,6 +67,37 @@ function OnError(Error)
 {
 	Log(`Error: ${Error}`);
 }
+	
+	function RenderImage(ImageBytes,ImageWidth,ImageHeight)
+	{
+		//	this offset varies depending on canvas size...
+		const ImageByteOffset = 480;
+		const Bytes = ImageBytes.slice(ImageByteOffset);
+		
+		const Canvas = document.querySelector(`canvas`);
+		const Context = Canvas.getContext('2d');
+		const ContextImageData = Context.createImageData(Canvas.width, Canvas.height);
+		const ContextData = ContextImageData.data;
+		
+		const DrawWidth = Math.min( ContextImageData.width, ImageWidth );
+		const DrawHeight = Math.min( ContextImageData.height, ImageHeight );
+		Log(`Image width ${ImageWidth} canvas width ${Canvas.width}`);
+		for ( let y=0;	y<DrawHeight;	y++ )
+		for ( let x=0;	x<DrawWidth;	x++ )
+		{
+			const CanvasChannels = 4;
+			const ImageChannels = 1;
+			const CanvasP = ((y * ContextImageData.width) + x) * CanvasChannels;
+			const ImageP = ((y * ImageWidth) + x) * ImageChannels;
+			const Grey = Bytes[ImageP];
+			const Alpha = 255;
+			ContextData[CanvasP+0] = Grey;
+			ContextData[CanvasP+1] = Grey;
+			ContextData[CanvasP+2] = Grey;
+			ContextData[CanvasP+3] = Alpha;
+		}
+		Context.putImageData(ContextImageData, 0, 0);
+	}
 
 async function StreamData(Url)
 {
@@ -77,9 +120,14 @@ async function StreamData(Url)
 		if ( Chunk.done ) 
 			break;
 		
-		BytesRead += Chunk.value?.length ?? 0;
+		const ChunkLength = Chunk.value?.length ?? 0;
+		//Log(`Chunk length ${(ChunkLength/1024).toFixed(2)}kb`);
+		BytesRead += ChunkLength;
 		const MbRead = BytesRead / 1024 / 1024;
 		SetStatus(`${MbRead.toFixed(2)}mb`);
+		//RenderImage( Chunk.value, 1920, 1440 );
+		const BytesPerRow = 2884;	//	this was total, interleaved, even though the data isnt
+		RenderImage( Chunk.value, 1920, 1440 );
 	}
 	Log(`Finished`);
 }

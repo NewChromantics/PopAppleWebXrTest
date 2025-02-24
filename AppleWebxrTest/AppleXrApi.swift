@@ -58,7 +58,7 @@ class WebxrController : NSObject, WKScriptMessageHandlerWithReply, ARSessionDele
 			frameQueue = []
 		}
 		frameQueue.append(frame)
-		print("New frame (now x\(frameQueue.count))")
+		//print("New frame (now x\(frameQueue.count))")
 	}
 
 	
@@ -230,6 +230,10 @@ class WebxrController : NSObject, WKScriptMessageHandlerWithReply, ARSessionDele
 				continue
 			}
 			*/
+			let bytesPerRow = CVPixelBufferGetBytesPerRow(pixels)
+			let width = CVPixelBufferGetWidth(pixels)
+			let height = CVPixelBufferGetHeight(pixels)
+			let format = CVPixelBufferGetPixelFormatName(pixelBuffer: pixels)
 			//	get pixels as bytes
 			try pixels.LockPixels()
 			{
@@ -237,7 +241,7 @@ class WebxrController : NSObject, WKScriptMessageHandlerWithReply, ARSessionDele
 				let dataBytes = Data(bytes)
 				//let dataSlice = dataBytes[0..<1_000]
 				let dataSlice = dataBytes
-				print("Sending \(dataSlice.count/1024/1024)mb")
+				//print("Sending \(dataSlice.count/1024/1024)mb")
 				try urlSchemeTask.didReceiveSafe(dataSlice)
 			}
 		}
