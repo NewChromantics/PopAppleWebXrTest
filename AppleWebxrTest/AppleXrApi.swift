@@ -190,22 +190,30 @@ public class MyURLSchemeHandler: NSObject, WKURLSchemeHandler
 		
 			let bundlePath = Bundle.main.path(forResource: filePath, ofType: "mp4") ?? "xxx"
 
-		print("Loading \(filePath)")
+		print("Loading \(bundlePath)")
 			//if let fileHandle = FileHandle(forReadingAtPath: filePath) 
 			if let fileHandle = FileHandle(forReadingAtPath: bundlePath) 
 			{
 				// video files can be very large in size, so read them in chuncks.
-				let chunkSize = 1024 * 1024 // 1Mb
+				let chunkSize = 1 * 1024 * 1024 // 1Mb
 				let response = URLResponse(url: requestUrl,
 										   mimeType: "video/mp4",
-										   expectedContentLength: chunkSize,
+										   expectedContentLength: 0,	//	this was the chunk size, but then would corrupt if sent too slow??
 										   textEncodingName: nil)
 				strongSelf.postResponse(to: urlSchemeTask, response: response)
-				var data = fileHandle.readData(ofLength: chunkSize) // get the first chunk
-				while (!data.isEmpty && !strongSelf.hasTaskStopped(urlSchemeTask)) {
+				var TotalBytes = 0
+				while ( !strongSelf.hasTaskStopped(urlSchemeTask) ) 
+				{
+					var data = fileHandle.readData(ofLength: chunkSize) // get the first chunk
+					print("chunk \(data.count) bytes")
+					if data.isEmpty 
+					{
+						break
+					}
 					strongSelf.postResponse(to: urlSchemeTask, data: data)
-					data = fileHandle.readData(ofLength: chunkSize) // get the next chunk
+					TotalBytes += data.count
 				}
+				print("sent \(TotalBytes) total bytes")
 				fileHandle.closeFile()
 				strongSelf.postFinished(to: urlSchemeTask)
 			} else {
