@@ -62,6 +62,7 @@ class WebViewController
 {
 	var enableDebug = true
 	var webXr = WebxrController()
+	var testUrlHandler = MyURLSchemeHandler()
 	var webView : WKWebView!
 	
 	init()
@@ -112,6 +113,9 @@ class WebViewController
 		//	js: window.webkit.messageHandlers.AppleXr.postMessage(messageText);
 		configuration.userContentController.addScriptMessageHandler(webXr, contentWorld:.page, name: WebxrController.messageName)
 
+		
+		configuration.setURLSchemeHandler(testUrlHandler, forURLScheme: MyURLSchemeHandler.urlScheme )
+		
 		return configuration
 	}
 }
@@ -172,7 +176,8 @@ struct ContentView: View
 	//let url = "https://webglsamples.org/blob/blob.html"
 	//let url = "https://immersive-web.github.io/webxr-samples/immersive-ar-session.html"
 	//@State var url : String = "https://immersive-web.github.io/webxr-samples/immersive-ar-session.html?usePolyfill=0"
-	@State var url : String = "https://immersive-web.github.io/webxr-samples/"
+	//@State var url : String = "https://immersive-web.github.io/webxr-samples/"
+	@State var url : String = "arkit://NopeAnim"
 	
 	@State var webViewController = WebViewController()
 

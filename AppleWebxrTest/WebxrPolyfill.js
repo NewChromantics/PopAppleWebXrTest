@@ -195,7 +195,17 @@ class ArSession
 	
 	constructor()
 	{
+		this.LoadArkitImage();
+		
 		this.#Thread().catch( this.#OnError.bind(this) );
+	}
+	
+	LoadArkitImage()
+	{
+		const Image = document.createElement('img');
+		Image.src = "arkit:SomeImage";
+		Image.style = "position:absolute; width:200px; height: 200px; background:red;";
+		document.body.appendChild(Image);
 	}
 	
 	#OnError(Error)
