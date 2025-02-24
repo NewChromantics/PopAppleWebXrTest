@@ -6,22 +6,6 @@ import PopCommon
 
 
 
-extension String
-{
-	//	returns string without this suffix
-	//	api named to match .trimPrefix
-	public func trimSuffix(_ suffix:String) -> String
-	{
-		if !self.hasSuffix(suffix)
-		{
-			return self
-		}
-		
-		var prefix = self.dropLast(suffix.count)
-		return String(prefix)
-	}
-}
-
 
 
 
