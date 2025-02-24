@@ -5,6 +5,26 @@ import WebKit
 import PopCommon
 
 
+
+extension String
+{
+	//	returns string without this suffix
+	//	api named to match .trimPrefix
+	public func trimSuffix(_ suffix:String) -> String
+	{
+		if !self.hasSuffix(suffix)
+		{
+			return self
+		}
+		
+		var prefix = self.dropLast(suffix.count)
+		return String(prefix)
+	}
+}
+
+
+
+
 func MatrixToFloatArray(_ float4x4:simd_float4x4) -> [Float]
 {
 	let array : [Float] = [
@@ -55,6 +75,8 @@ class WebxrController : NSObject, WKScriptMessageHandlerWithReply
 		meta["ProjectionMatrix"] = MatrixToFloatArray(ProjectionMatrix)
 	}
 	
+	let bigData = Array(repeating: 0xffffffff, count: 2024*2024 )
+	
 	func HandleMessage(_ message:WKScriptMessage) throws -> Any
 	{
 		guard let messageBody = message.body as? String else
@@ -76,7 +98,8 @@ class WebxrController : NSObject, WKScriptMessageHandlerWithReply
 			frameMeta["DepthTimestamp"] = frame.capturedDepthDataTimestamp
 			
 			//	way too slow
-			frameMeta["BigData"] = Array(repeating: 0xffffffff, count: 2024*2024 )
+			//frameMeta["BigData"] = Array(repeating: 0xffffffff, count: 2024*2024 )
+			frameMeta["BigData"] = bigData
 			
 			WebxrController.WriteCameraMeta( camera: frame.camera, meta: &frameMeta )
 			
@@ -130,6 +153,61 @@ class WebxrController : NSObject, WKScriptMessageHandlerWithReply
 	*/
 }
 
+
+
+extension WKURLSchemeTask
+{
+	func sendHtml(html:String)
+	{
+		let response = URLResponse(url: self.request.url!,
+								   mimeType: "text/html",
+								   expectedContentLength: 0,
+								   textEncodingName: nil)
+		let data = html.data(using: .utf8)! 
+		self.didReceive(response)
+		self.didReceive(data)
+		self.didFinish()
+	}
+	
+	func sendStreamedResourceFile(resourceFilename:String,resourceExtension:String) async throws 
+	{
+		let mimeType = "video/mp4"
+		var filePathWithoutExtension = resourceFilename.trimSuffix(".\(resourceExtension)")
+		let bundlePath = Bundle.main.path(forResource: filePathWithoutExtension, ofType: resourceExtension) ?? "xxx"
+		
+		print("Loading \(bundlePath)")
+		//if let fileHandle = FileHandle(forReadingAtPath: filePath) 
+		guard let fileHandle = FileHandle(forReadingAtPath: bundlePath) else
+		{
+			throw RuntimeError("Failed to open \(bundlePath)")
+		}
+		
+		// video files can be very large in size, so read them in chuncks.
+		let chunkSize = 1 * 1024 * 1024 // 1Mb
+		let response = URLResponse(url: self.request.url!,
+								   mimeType: mimeType,
+								   expectedContentLength: 0,	//	this was the chunk size, but then would corrupt if sent too slow??
+								   textEncodingName: nil)
+		self.didReceive(response)
+
+		var TotalBytes = 0
+		while ( !Task.isCancelled )
+		{
+			var data = fileHandle.readData(ofLength: chunkSize) // get the first chunk
+			print("chunk \(data.count) bytes")
+			if data.isEmpty 
+			{
+				break
+			}
+			self.didReceive(data)
+			TotalBytes += data.count
+		}
+		print("sent \(TotalBytes) total bytes")
+		fileHandle.closeFile()
+		self.didFinish()
+	}
+}
+
 // This is based on "Customized Loading in WKWebView" WWDC video (near the end of the
 // video) at https://developer.apple.com/videos/play/wwdc2017/220 and A LOT of trial
 // and error to figure out how to push work to background thread.
@@ -158,114 +236,51 @@ class WebxrController : NSObject, WKScriptMessageHandlerWithReply
 public class MyURLSchemeHandler: NSObject, WKURLSchemeHandler 
 {
 	static let urlScheme = "arkit"
+	
+	//	todo: turn this into tasks we can cancel
 	private var stoppedTaskURLs: [URLRequest] = []
 	
 	public func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
 		let request = urlSchemeTask.request
 		guard let requestUrl = request.url else { return }
 		
-		//	gr; this blocks if not on queue
-		DispatchQueue.global(qos: .background).async { [weak self] in
-			guard let strongSelf = self, requestUrl.scheme == MyURLSchemeHandler.urlScheme else {
-				return
-			}
-			
+		if requestUrl.scheme != MyURLSchemeHandler.urlScheme
+		{
+			return
+		}
+
+		let responseTask = Task(priority: .background)
+		{
 			//let filePath = requestUrl.absoluteString	// absolute includes scheme
 			var filePath = requestUrl.path().suffix(after:"/") ?? requestUrl.path()
 
-			
-		//	return html
-			if requestUrl.path() == ""
-		{
-			let response = URLResponse(url: requestUrl,
-									   mimeType: "text/html",
-									   expectedContentLength: 0,
-									   textEncodingName: nil)
-			strongSelf.postResponse(to: urlSchemeTask, response: response)
-			let html = "<html><head></head><body><h1>Hello</h1><img src=NopeAnim /></body></html>"
-			strongSelf.postResponse(to: urlSchemeTask, data: html.data(using: .utf8)!)
-			strongSelf.postFinished(to: urlSchemeTask)
-			return
-		}
-		
-			let bundlePath = Bundle.main.path(forResource: filePath, ofType: "mp4") ?? "xxx"
-
-		print("Loading \(bundlePath)")
-			//if let fileHandle = FileHandle(forReadingAtPath: filePath) 
-			if let fileHandle = FileHandle(forReadingAtPath: bundlePath) 
+			do
 			{
-				// video files can be very large in size, so read them in chuncks.
-				let chunkSize = 1 * 1024 * 1024 // 1Mb
-				let response = URLResponse(url: requestUrl,
-										   mimeType: "video/mp4",
-										   expectedContentLength: 0,	//	this was the chunk size, but then would corrupt if sent too slow??
-										   textEncodingName: nil)
-				strongSelf.postResponse(to: urlSchemeTask, response: response)
-				var TotalBytes = 0
-				while ( !strongSelf.hasTaskStopped(urlSchemeTask) ) 
+				//	return html
+				if requestUrl.path() == ""
 				{
-					var data = fileHandle.readData(ofLength: chunkSize) // get the first chunk
-					print("chunk \(data.count) bytes")
-					if data.isEmpty 
-					{
-						break
-					}
-					strongSelf.postResponse(to: urlSchemeTask, data: data)
-					TotalBytes += data.count
+					let html = "<html><head></head><body><h1>Hello</h1><img src=NopeAnim.mp4 /></body></html>"
+					urlSchemeTask.sendHtml(html: html)
+					return
 				}
-				print("sent \(TotalBytes) total bytes")
-				fileHandle.closeFile()
-				strongSelf.postFinished(to: urlSchemeTask)
-			} else {
-				print("Failed to open \(filePath)")
-				strongSelf.postFailed(
-					to: urlSchemeTask,
-					error: NSError(domain: "Failed to fetch resource",
-								   code: 0,
-								   userInfo: nil))
+				
+				let fileExtension = requestUrl.pathExtension
+				try await urlSchemeTask.sendStreamedResourceFile(resourceFilename: filePath, resourceExtension: fileExtension)
 			}
-			
-			// remove the task from the list of stopped tasks (if it is there)
-			// since we're done with it anyway
-			strongSelf.stoppedTaskURLs = strongSelf.stoppedTaskURLs.filter{$0 != request}
-		}
-	}
-	
-	public func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
-		if (!self.hasTaskStopped(urlSchemeTask)) {
-			self.stoppedTaskURLs.append(urlSchemeTask.request)
-		}
-	}
-	
-	private func hasTaskStopped(_ urlSchemeTask: WKURLSchemeTask) -> Bool {
-		return self.stoppedTaskURLs.contains{$0 == urlSchemeTask.request}
-	}
-	
-	private func postResponse(to urlSchemeTask: WKURLSchemeTask,  response: URLResponse) {
-		post(to: urlSchemeTask, action: {urlSchemeTask.didReceive(response)})
-	}
-	
-	private func postResponse(to urlSchemeTask: WKURLSchemeTask,  data: Data) {
-		post(to: urlSchemeTask, action: {urlSchemeTask.didReceive(data)})
-	}
-	
-	private func postFinished(to urlSchemeTask: WKURLSchemeTask) {
-		post(to: urlSchemeTask, action: {urlSchemeTask.didFinish()})
-	}
-	
-	private func postFailed(to urlSchemeTask: WKURLSchemeTask, error: NSError) {
-		post(to: urlSchemeTask, action: {urlSchemeTask.didFailWithError(error)})
-	}
-	
-	private func post(to urlSchemeTask: WKURLSchemeTask, action: @escaping () -> Void) {
-		let group = DispatchGroup()
-		group.enter()
-		DispatchQueue.main.async { [weak self] in
-			if (self?.hasTaskStopped(urlSchemeTask) == false) {
-				action()
+			catch
+			{
+				print("Failed to open \(filePath); \(error.localizedDescription)")
+				let errorResponse = NSError(domain: "Failed to fetch resource",
+								  code: 0,
+								  userInfo: nil)
+				urlSchemeTask.didFailWithError(errorResponse)
 			}
-			group.leave()
 		}
-		group.wait()
 	}
+	
+	public func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) 
+	{
+		print("todo: cancel task for \(urlSchemeTask.request.url)")
+	}
+	
 }
