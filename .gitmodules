@@ -1,0 +1,3 @@
+[submodule "PopCommon.SwiftPackage"]
+	path = PopCommon.SwiftPackage
+	url = https://github.com/NewChromantics/PopCommon.SwiftPackage.git

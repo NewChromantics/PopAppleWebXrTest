@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BF1CF1F72D6CADF600B21D2C /* PopCommon in Frameworks */ = {isa = PBXBuildFile; productRef = BF1CF1F62D6CADF600B21D2C /* PopCommon */; };
+		BF1CF1FA2D6CD19800B21D2C /* PopCommon in Frameworks */ = {isa = PBXBuildFile; productRef = BF1CF1F92D6CD19800B21D2C /* PopCommon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,7 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BF1CF1F72D6CADF600B21D2C /* PopCommon in Frameworks */,
+				BF1CF1FA2D6CD19800B21D2C /* PopCommon in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -70,7 +70,7 @@
 			);
 			name = AppleWebxrTest;
 			packageProductDependencies = (
-				BF1CF1F62D6CADF600B21D2C /* PopCommon */,
+				BF1CF1F92D6CD19800B21D2C /* PopCommon */,
 			);
 			productName = AppleWebxrTest;
 			productReference = BF99C6532D6891A60007DEDD /* AppleWebxrTest.app */;
@@ -101,7 +101,7 @@
 			mainGroup = BF99C64A2D6891A60007DEDD;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				BF1CF1F52D6CADF600B21D2C /* XCRemoteSwiftPackageReference "PopCommon.SwiftPackage" */,
+				BF1CF1F82D6CD19800B21D2C /* XCLocalSwiftPackageReference "PopCommon.SwiftPackage" */,
 			);
 			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
@@ -350,21 +350,16 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		BF1CF1F52D6CADF600B21D2C /* XCRemoteSwiftPackageReference "PopCommon.SwiftPackage" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/NewChromantics/PopCommon.SwiftPackage.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.0.4;
-			};
+/* Begin XCLocalSwiftPackageReference section */
+		BF1CF1F82D6CD19800B21D2C /* XCLocalSwiftPackageReference "PopCommon.SwiftPackage" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = PopCommon.SwiftPackage;
 		};
-/* End XCRemoteSwiftPackageReference section */
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		BF1CF1F62D6CADF600B21D2C /* PopCommon */ = {
+		BF1CF1F92D6CD19800B21D2C /* PopCommon */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = BF1CF1F52D6CADF600B21D2C /* XCRemoteSwiftPackageReference "PopCommon.SwiftPackage" */;
 			productName = PopCommon;
 		};
 /* End XCSwiftPackageProductDependency section */
