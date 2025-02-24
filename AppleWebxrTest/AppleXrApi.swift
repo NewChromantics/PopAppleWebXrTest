@@ -2,6 +2,8 @@
 import ARKit
 #endif
 import WebKit
+import PopCommon
+
 
 func MatrixToFloatArray(_ float4x4:simd_float4x4) -> [Float]
 {
@@ -162,17 +164,35 @@ public class MyURLSchemeHandler: NSObject, WKURLSchemeHandler
 		let request = urlSchemeTask.request
 		guard let requestUrl = request.url else { return }
 		
-		//DispatchQueue.global(qos: .background).async { [weak self] in
-		//guard let strongSelf = self, requestUrl.scheme == MyURLSchemeHandler.urlScheme else {
-		let strongSelf = self
-		guard requestUrl.scheme == MyURLSchemeHandler.urlScheme else {
+		//	gr; this blocks if not on queue
+		DispatchQueue.global(qos: .background).async { [weak self] in
+			guard let strongSelf = self, requestUrl.scheme == MyURLSchemeHandler.urlScheme else {
 				return
 			}
 			
 			//let filePath = requestUrl.absoluteString	// absolute includes scheme
-			let filePath = requestUrl.host ?? ""
+			var filePath = requestUrl.path().suffix(after:"/") ?? requestUrl.path()
+
+			
+		//	return html
+			if requestUrl.path() == ""
+		{
+			let response = URLResponse(url: requestUrl,
+									   mimeType: "text/html",
+									   expectedContentLength: 0,
+									   textEncodingName: nil)
+			strongSelf.postResponse(to: urlSchemeTask, response: response)
+			let html = "<html><head></head><body><h1>Hello</h1><img src=NopeAnim /></body></html>"
+			strongSelf.postResponse(to: urlSchemeTask, data: html.data(using: .utf8)!)
+			strongSelf.postFinished(to: urlSchemeTask)
+			return
+		}
+		
+			let bundlePath = Bundle.main.path(forResource: filePath, ofType: "mp4") ?? "xxx"
+
 		print("Loading \(filePath)")
-			if let fileHandle = FileHandle(forReadingAtPath: filePath) 
+			//if let fileHandle = FileHandle(forReadingAtPath: filePath) 
+			if let fileHandle = FileHandle(forReadingAtPath: bundlePath) 
 			{
 				// video files can be very large in size, so read them in chuncks.
 				let chunkSize = 1024 * 1024 // 1Mb
@@ -200,7 +220,7 @@ public class MyURLSchemeHandler: NSObject, WKURLSchemeHandler
 			// remove the task from the list of stopped tasks (if it is there)
 			// since we're done with it anyway
 			strongSelf.stoppedTaskURLs = strongSelf.stoppedTaskURLs.filter{$0 != request}
-		//}
+		}
 	}
 	
 	public func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {

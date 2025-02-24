@@ -177,7 +177,7 @@ struct ContentView: View
 	//let url = "https://immersive-web.github.io/webxr-samples/immersive-ar-session.html"
 	//@State var url : String = "https://immersive-web.github.io/webxr-samples/immersive-ar-session.html?usePolyfill=0"
 	//@State var url : String = "https://immersive-web.github.io/webxr-samples/"
-	@State var url : String = "arkit://NopeAnim"
+	@State var url : String = "arkit://Hello"
 	
 	@State var webViewController = WebViewController()
 

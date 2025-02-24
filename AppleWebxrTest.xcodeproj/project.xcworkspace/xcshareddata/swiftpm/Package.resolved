@@ -1,0 +1,15 @@
+{
+  "originHash" : "e010d4953933b481ad6b0d5ede4d5b3147d89c6355579c5f2b32e5ac6ba21693",
+  "pins" : [
+    {
+      "identity" : "popcommon.swiftpackage",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/NewChromantics/PopCommon.SwiftPackage.git",
+      "state" : {
+        "revision" : "70d94422609744c19e08136c2c4e28937f3346c1",
+        "version" : "0.0.4"
+      }
+    }
+  ],
+  "version" : 3
+}
