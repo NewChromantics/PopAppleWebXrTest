@@ -1,0 +1,91 @@
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=2" />
+
+</head>
+
+<body>
+<h1>Arkit camera</h1>
+</body>
+
+<div id=Status></div>
+<div id=Log></div>
+
+<script type=module>
+
+	function CreatePromise()
+	{
+		let Callbacks = {};
+		let PromiseHandler = function(Resolve,Reject)
+		{
+			Callbacks.Resolve = Resolve;
+			Callbacks.Reject = Reject;
+		}
+		let Prom = new Promise(PromiseHandler);
+		Prom.Resolve = Callbacks.Resolve;
+		Prom.Reject = Callbacks.Reject;
+		return Prom;
+	}
+	
+	function Yield(Milliseconds)
+	{
+		const Promise = CreatePromise();
+		setTimeout( Promise.Resolve, Milliseconds );
+		return Promise;
+	}
+	
+	
+let Logs = [];
+function Log(Status)
+{
+	Logs.push(Status);
+	const Div = document.querySelector(`#Log`);
+	
+	Div.innerText = Logs.join(`\n`);
+}
+	
+function SetStatus(Status)
+{
+	const StatusDiv = document.querySelector(`#Status`);
+	
+	StatusDiv.innerText = `${Status}`;
+}
+
+function OnError(Error)
+{
+	Log(`Error: ${Error}`);
+}
+
+async function StreamData(Url)
+{
+	Log(`Starting stream ${Url}`);
+	
+	const Response = await fetch(Url);
+	const Reader = await Response.body.getReader();
+	
+	let BytesRead = 0;
+	while ( true ) 
+	{
+		//	OS needs to breath it seems!
+		await Yield(10);
+		
+		//Log("Read()...");
+		const Chunk = await Reader.read();
+		
+		//SetStatus(`Read chunk-> ${Chunk.done}, ${Chunk.value}`);
+		//Log(`Read chunk-> ${Chunk.done}`);
+		if ( Chunk.done ) 
+			break;
+		
+		BytesRead += Chunk.value?.length ?? 0;
+		const MbRead = BytesRead / 1024 / 1024;
+		SetStatus(`${MbRead.toFixed(2)}mb`);
+	}
+	Log(`Finished`);
+}
+
+StreamData(`/CameraStream`).catch(OnError);
+
+</script>
+
+</html>

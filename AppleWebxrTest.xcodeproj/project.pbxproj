@@ -39,6 +39,7 @@
 			children = (
 				BF99C6552D6891A60007DEDD /* AppleWebxrTest */,
 				BF99C6542D6891A60007DEDD /* Products */,
+				BF9CA5692D6D12A3005A51D6 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -48,6 +49,13 @@
 				BF99C6532D6891A60007DEDD /* AppleWebxrTest.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		BF9CA5692D6D12A3005A51D6 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

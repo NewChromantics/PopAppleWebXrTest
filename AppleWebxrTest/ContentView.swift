@@ -98,6 +98,9 @@ class WebViewController
 	{
 		let configuration = WKWebViewConfiguration()
 		
+		configuration.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+		configuration.setValue(true, forKey: "allowUniversalAccessFromFileURLs")
+		
 		let WebxrPolyfillUrl = Bundle.main.url(forResource: "WebxrPolyfill", withExtension: "js")!
 		let WebxrPolyfillCode = try! String(contentsOf: WebxrPolyfillUrl, encoding: .utf8)
 		let webxrPolyfill = WKUserScript(source: WebxrPolyfillCode, injectionTime: .atDocumentStart, forMainFrameOnly: false)
@@ -113,7 +116,7 @@ class WebViewController
 		//	js: window.webkit.messageHandlers.AppleXr.postMessage(messageText);
 		configuration.userContentController.addScriptMessageHandler(webXr, contentWorld:.page, name: WebxrController.messageName)
 
-		
+		configuration.setURLSchemeHandler(webXr, forURLScheme: WebxrController.urlScheme )
 		configuration.setURLSchemeHandler(testUrlHandler, forURLScheme: MyURLSchemeHandler.urlScheme )
 		
 		return configuration
@@ -175,9 +178,10 @@ struct ContentView: View
 {
 	//let url = "https://webglsamples.org/blob/blob.html"
 	//let url = "https://immersive-web.github.io/webxr-samples/immersive-ar-session.html"
-	@State var url : String = "https://immersive-web.github.io/webxr-samples/immersive-ar-session.html?usePolyfill=0"
+	//@State var url : String = "https://immersive-web.github.io/webxr-samples/immersive-ar-session.html?usePolyfill=0"
 	//@State var url : String = "https://immersive-web.github.io/webxr-samples/"
 	//@State var url : String = "arkit://Hello"
+	@State var url : String = "arkit://camera.html"
 	
 	@State var webViewController = WebViewController()
 

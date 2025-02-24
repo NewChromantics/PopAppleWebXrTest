@@ -203,7 +203,7 @@ class ArSession
 	LoadArkitImage()
 	{
 		const Image = document.createElement('img');
-		Image.src = "arkit:SomeImage";
+		Image.src = "arkit:Camera/CameraImage";
 		Image.style = "position:absolute; width:200px; height: 200px; background:red;";
 		document.body.appendChild(Image);
 	}
